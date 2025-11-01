@@ -1,0 +1,17 @@
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\bin\x64\Release\FFXIV_AutoChat.json
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\bin\x64\Release\FFXIV_AutoChat.deps.json
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\bin\x64\Release\FFXIV_AutoChat.dll
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\bin\x64\Release\ImGui.NET.dll
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\bin\x64\Release\runtimes\linux-x64\native\libcimgui.so
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\bin\x64\Release\runtimes\osx\native\libcimgui.dylib
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\bin\x64\Release\runtimes\win-arm64\native\cimgui.dll
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\bin\x64\Release\runtimes\win-x64\native\cimgui.dll
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\bin\x64\Release\runtimes\win-x86\native\cimgui.dll
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_AutoChat.csproj.AssemblyReference.cache
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_AutoChat.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_AutoChat.AssemblyInfoInputs.cache
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_AutoChat.AssemblyInfo.cs
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_AutoChat.csproj.CoreCompileInputs.cache
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_AutoChat.sourcelink.json
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_Au.2CC4274C.Up2Date
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_AutoChat.dll

@@ -1,0 +1,16 @@
+{
+  "Author": "yourShika",
+  "Name": "AutoChat",
+  "InternalName": "FFXIV_AutoChat",
+  "Punchline": "Sendet periodische Chat-Meldungen in wählbare Kanäle.",
+  "Description": "Konfigurierbares Intervall, freier Nachrichtentext, Kanalwahl (Sagen/Gruppe/Allianz/Rufen/Schreien/FC) inkl. Start/Stop.",
+  "RepoUrl": "https://github.com/yourShika/FFXIV_AutoChat",
+  "ApplicableVersion": "any",
+  "IconUrl": "https://raw.githubusercontent.com/yourShika/FFXIV_AutoChat/main/FFXIV_AutoChat/icon.png",
+  "AcceptsFeedback": false,
+  "AssemblyVersion": "1.0.0.0",
+  "Changelog": "Initiale Version",
+  "CategoryTags": [ "utility", "chat" ],
+  "LoadPriority": 0,
+  "IsTestingExclusive": false
+}

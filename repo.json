@@ -1,0 +1,16 @@
+{
+  "Plugins": [
+    {
+      "InternalName": "AutoChat",
+      "Name": "AutoChat",
+      "Author": "yourShika",
+      "Description": "Sends periodic custom messages to a chosen chat channel.",
+      "AssemblyVersion": "1.0.0.0",
+      "RepoUrl": "https://github.com/yourShika/FFXIV_AutoChat",
+      "DownloadLinkInstall": "https://github.com/yourShika/FFXIV_AutoChat/raw/main/FFXIV_AutoChat/latest.zip",
+      "DownloadLinkTesting": "https://github.com/yourShika/FFXIV_AutoChat/raw/main/FFXIV_AutoChat/latest.zip",
+      "IconUrl": "https://raw.githubusercontent.com/yourShika/FFXIV_AutoChat/main/FFXIV_AutoChat/icon.png",
+      "DalamudApiLevel": 10
+    }
+  ]
+}
