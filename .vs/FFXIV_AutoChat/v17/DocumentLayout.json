@@ -1,12 +1,37 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Users\\Kamil Bura\\Desktop\\FFXIV_AutoChat\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{B5705C66-6D2A-F4F3-A1C7-A37D586F3F58}|FFXIV_AutoChat\\FFXIV_AutoChat.csproj|c:\\users\\kamil bura\\desktop\\ffxiv_autochat\\ffxiv_autochat\\ffxiv_autochat.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{B5705C66-6D2A-F4F3-A1C7-A37D586F3F58}|FFXIV_AutoChat\\FFXIV_AutoChat.csproj|solutionrelative:ffxiv_autochat\\ffxiv_autochat.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": []
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "FFXIV_AutoChat",
+              "DocumentMoniker": "C:\\Users\\Kamil Bura\\Desktop\\FFXIV_AutoChat\\FFXIV_AutoChat\\FFXIV_AutoChat.csproj",
+              "RelativeDocumentMoniker": "FFXIV_AutoChat\\FFXIV_AutoChat.csproj",
+              "ToolTip": "C:\\Users\\Kamil Bura\\Desktop\\FFXIV_AutoChat\\FFXIV_AutoChat\\FFXIV_AutoChat.csproj",
+              "RelativeToolTip": "FFXIV_AutoChat\\FFXIV_AutoChat.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-11-02T10:44:09.629Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -15,3 +15,4 @@ C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_
 C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_AutoChat.sourcelink.json
 C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_Au.2CC4274C.Up2Date
 C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\obj\x64\Release\FFXIV_AutoChat.dll
+C:\Users\Kamil Bura\Desktop\FFXIV_AutoChat\FFXIV_AutoChat\bin\x64\Release\icon.png
