@@ -1,6 +1,5 @@
 ﻿using System;
 using Dalamud.Interface.Windowing;
-using Dalamud.Logging;
 using ImGuiNET;
 
 namespace AutoChat.Ui;

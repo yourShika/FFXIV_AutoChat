@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using Dalamud.IoC;
-using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Game.Command;
@@ -18,6 +17,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] public static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] public static IFramework Framework { get; private set; } = null!;
     [PluginService] public static IClientState ClientState { get; private set; } = null!;
+    [PluginService] public static IPluginLog LogService { get; private set; } = null!;
     private const string Command = "/autochat";
 
     public Configuration Config { get; private set; } = null!;
@@ -41,9 +41,11 @@ public sealed class Plugin : IDalamudPlugin
 
     public Plugin(IDalamudPluginInterface PluginInterface)
     {
-        PluginLog.LogInformation("[AutoChat] Plugin initialization starting.");
-
         PluginInterface.Create<Plugin>(this);
+
+        PluginLog.Initialize(LogService);
+
+        PluginLog.LogInformation("[AutoChat] Plugin initialization starting.");
 
         var initWatch = Stopwatch.StartNew();
 
