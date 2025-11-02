@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -18,39 +19,73 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] public static IClientState ClientState { get; private set; } = null!;
     private const string Command = "/autochat";
 
-    public Configuration Config { get; private set; }
+    public Configuration Config { get; private set; } = null!;
 
     private double elapsed;
 
-    private readonly WindowSystem windowSystem;
-    private readonly Ui.AutoChatWindow window;
+    private WindowSystem? windowSystem;
+    private Ui.AutoChatWindow? window;
 
-    private readonly Action openConfigHandler;
+    private Action? openConfigHandler;
+
+    private bool isOperational = true;
+    private bool hasFailed;
+    private bool commandRegistered;
+    private bool frameworkHooked;
+    private bool drawHooked;
+    private bool openConfigUiHooked;
+    private bool openMainUiHooked;
+
+    private const double MaxInitializationSeconds = 10;
 
     public Plugin(IDalamudPluginInterface PluginInterface)
     {
         PluginInterface.Create<Plugin>(this);
 
-        Config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-        Config.Initialize(PluginInterface);
-        if (Config.Sanitize())
-            Config.Save();
+        var initWatch = Stopwatch.StartNew();
 
-        window = new Ui.AutoChatWindow(this);
-        windowSystem = new WindowSystem("AutoChat");
-        windowSystem.AddWindow(window);
-
-        PluginInterface.UiBuilder.Draw += DrawUI;
-        openConfigHandler = OpenConfigWindow;
-        PluginInterface.UiBuilder.OpenConfigUi += openConfigHandler;
-        PluginInterface.UiBuilder.OpenMainUi += openConfigHandler;
-
-        CommandManager.AddHandler(Command, new CommandInfo(OnCommand)
+        try
         {
-            HelpMessage = "Opens the AutoChat configuration window."
-        });
+            Config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+            Config.Initialize(PluginInterface);
+            if (Config.Sanitize())
+                Config.Save();
 
-        Framework.Update += OnFrameworkUpdate;
+            window = new Ui.AutoChatWindow(this);
+            windowSystem = new WindowSystem("AutoChat");
+            windowSystem.AddWindow(window);
+
+            PluginInterface.UiBuilder.Draw += DrawUI;
+            drawHooked = true;
+            openConfigHandler = OpenConfigWindow;
+            PluginInterface.UiBuilder.OpenConfigUi += openConfigHandler;
+            openConfigUiHooked = true;
+            PluginInterface.UiBuilder.OpenMainUi += openConfigHandler;
+            openMainUiHooked = true;
+
+            CommandManager.AddHandler(Command, new CommandInfo(OnCommand)
+            {
+                HelpMessage = "Opens the AutoChat configuration window."
+            });
+            commandRegistered = true;
+
+            Framework.Update += OnFrameworkUpdate;
+            frameworkHooked = true;
+        }
+        catch (Exception ex)
+        {
+            HandleCriticalFailure("initialization failure", ex);
+            return;
+        }
+        finally
+        {
+            initWatch.Stop();
+        }
+
+        if (!hasFailed && initWatch.Elapsed > TimeSpan.FromSeconds(MaxInitializationSeconds))
+        {
+            HandleCriticalFailure($"initialization timeout after {initWatch.Elapsed.TotalSeconds:F1}s", null);
+        }
     }
 
     private void OnCommand(string command, string args)
@@ -63,41 +98,61 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnFrameworkUpdate(IFramework framework)
     {
-        tickAccum += framework.UpdateDelta.TotalSeconds;
-        if (tickAccum < TickStep)
+        if (!isOperational)
             return;
 
-        var step = tickAccum;
-        tickAccum = 0;
-
-        if (!Config.Enabled || Config.IntervalSeconds < 1 || !ClientState.IsLoggedIn)
+        try
         {
-            elapsed = 0;
-            return;
+            tickAccum += framework.UpdateDelta.TotalSeconds;
+            if (tickAccum < TickStep)
+                return;
+
+            var step = tickAccum;
+            tickAccum = 0;
+
+            if (!Config.Enabled || Config.IntervalSeconds < 1 || !ClientState.IsLoggedIn)
+            {
+                elapsed = 0;
+                return;
+            }
+
+            elapsed += step;
+            if (elapsed + 1e-6 >= Config.IntervalSeconds) // numeric safety
+            {
+                elapsed = 0;
+                TrySend();
+            }
         }
-
-        elapsed += step;
-        if (elapsed + 1e-6 >= Config.IntervalSeconds) // numeric safety
+        catch (Exception ex)
         {
-            elapsed = 0;
-            TrySend();
+            HandleCriticalFailure("framework update failure", ex);
         }
     }
 
     internal void TrySend()
     {
-        var msg = (Config.Message ?? string.Empty).Trim();
-        if (string.IsNullOrEmpty(msg)) return;
-
-        var prefix = GetChannelPrefix(Config.Channel);
-        if (string.IsNullOrEmpty(prefix))
-        {
-            ChatGui.Print(msg);
+        if (!isOperational)
             return;
-        }
 
-        var toSend = $"{prefix} {msg}";
-        CommandManager.ProcessCommand(toSend);
+        try
+        {
+            var msg = (Config.Message ?? string.Empty).Trim();
+            if (string.IsNullOrEmpty(msg)) return;
+
+            var prefix = GetChannelPrefix(Config.Channel);
+            if (string.IsNullOrEmpty(prefix))
+            {
+                ChatGui.Print(msg);
+                return;
+            }
+
+            var toSend = $"{prefix} {msg}";
+            CommandManager.ProcessCommand(toSend);
+        }
+        catch (Exception ex)
+        {
+            HandleCriticalFailure("message dispatch failure", ex);
+        }
     }
 
     public static string GetChannelPrefix(ChatChannel channel) => channel switch
@@ -130,24 +185,109 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
-        Framework.Update -= OnFrameworkUpdate;
-        CommandManager.RemoveHandler(Command);
-        PluginInterface.UiBuilder.Draw -= DrawUI;
-        PluginInterface.UiBuilder.OpenConfigUi -= openConfigHandler;
-        PluginInterface.UiBuilder.OpenMainUi -= openConfigHandler;
-
-        windowSystem.RemoveAllWindows();
-        window?.Dispose();
+        CleanupHooks();
+        DisposeWindow();
     }
 
     private void DrawUI()
     {
-        windowSystem.Draw();
+        if (!isOperational)
+            return;
+
+        try
+        {
+            windowSystem?.Draw();
+        }
+        catch (Exception ex)
+        {
+            HandleCriticalFailure("UI draw failure", ex);
+        }
     }
 
     private void OpenConfigWindow()
     {
-        window.IsOpen = true;
+        if (!isOperational)
+            return;
+
+        if (window != null)
+            window.IsOpen = true;
+    }
+
+    private void HandleCriticalFailure(string reason, Exception? ex)
+    {
+        if (hasFailed)
+            return;
+
+        hasFailed = true;
+        isOperational = false;
+
+        CleanupHooks();
+        DisposeWindow();
+
+        tickAccum = 0;
+        elapsed = 0;
+
+        if (Config != null && Config.Enabled)
+        {
+            Config.Enabled = false;
+            try
+            {
+                Config.Save();
+            }
+            catch
+            {
+                // ignored - failure to save should not throw further
+            }
+        }
+
+        var message = $"[AutoChat] Automatic chat disabled due to {reason}.";
+        if (ex != null)
+        {
+            message += $" Error: {ex.Message}";
+        }
+
+        ChatGui?.PrintError(message);
+    }
+
+    private void CleanupHooks()
+    {
+        if (frameworkHooked)
+        {
+            Framework.Update -= OnFrameworkUpdate;
+            frameworkHooked = false;
+        }
+
+        if (commandRegistered)
+        {
+            CommandManager.RemoveHandler(Command);
+            commandRegistered = false;
+        }
+
+        if (drawHooked)
+        {
+            PluginInterface.UiBuilder.Draw -= DrawUI;
+            drawHooked = false;
+        }
+
+        if (openConfigUiHooked && openConfigHandler != null)
+        {
+            PluginInterface.UiBuilder.OpenConfigUi -= openConfigHandler;
+            openConfigUiHooked = false;
+        }
+
+        if (openMainUiHooked && openConfigHandler != null)
+        {
+            PluginInterface.UiBuilder.OpenMainUi -= openConfigHandler;
+            openMainUiHooked = false;
+        }
+    }
+
+    private void DisposeWindow()
+    {
+        windowSystem?.RemoveAllWindows();
+        window?.Dispose();
+        windowSystem = null;
+        window = null;
     }
 }
 
