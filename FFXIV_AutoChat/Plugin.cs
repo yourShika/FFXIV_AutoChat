@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using Dalamud.IoC;
+using Dalamud.Logging;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Game.Command;
@@ -40,6 +41,8 @@ public sealed class Plugin : IDalamudPlugin
 
     public Plugin(IDalamudPluginInterface PluginInterface)
     {
+        PluginLog.LogInformation("[AutoChat] Plugin initialization starting.");
+
         PluginInterface.Create<Plugin>(this);
 
         var initWatch = Stopwatch.StartNew();
@@ -48,12 +51,17 @@ public sealed class Plugin : IDalamudPlugin
         {
             Config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
             Config.Initialize(PluginInterface);
+            PluginLog.LogDebug("[AutoChat] Configuration loaded from Dalamud.");
             if (Config.Sanitize())
+            {
+                PluginLog.LogDebug("[AutoChat] Configuration required sanitation on load; saving corrected values.");
                 Config.Save();
+            }
 
             window = new Ui.AutoChatWindow(this);
             windowSystem = new WindowSystem("AutoChat");
             windowSystem.AddWindow(window);
+            PluginLog.LogDebug("[AutoChat] UI windows initialized.");
 
             PluginInterface.UiBuilder.Draw += DrawUI;
             drawHooked = true;
@@ -62,15 +70,18 @@ public sealed class Plugin : IDalamudPlugin
             openConfigUiHooked = true;
             PluginInterface.UiBuilder.OpenMainUi += openConfigHandler;
             openMainUiHooked = true;
+            PluginLog.LogDebug("[AutoChat] UI builder hooks established.");
 
             CommandManager.AddHandler(Command, new CommandInfo(OnCommand)
             {
                 HelpMessage = "Opens the AutoChat configuration window."
             });
             commandRegistered = true;
+            PluginLog.LogDebug("[AutoChat] Chat command registered.");
 
             Framework.Update += OnFrameworkUpdate;
             frameworkHooked = true;
+            PluginLog.LogDebug("[AutoChat] Framework update handler registered.");
         }
         catch (Exception ex)
         {
@@ -80,6 +91,7 @@ public sealed class Plugin : IDalamudPlugin
         finally
         {
             initWatch.Stop();
+            PluginLog.LogInformation($"[AutoChat] Initialization completed in {initWatch.Elapsed.TotalMilliseconds:F0} ms.");
         }
 
         if (!hasFailed && initWatch.Elapsed > TimeSpan.FromSeconds(MaxInitializationSeconds))
@@ -90,6 +102,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnCommand(string command, string args)
     {
+        PluginLog.LogDebug($"[AutoChat] Received command '{command}' with args '{args}'.");
         OpenConfigWindow();
     }
 
@@ -112,6 +125,7 @@ public sealed class Plugin : IDalamudPlugin
 
             if (!Config.Enabled || Config.IntervalSeconds < 1 || !ClientState.IsLoggedIn)
             {
+                PluginLog.LogTrace("[AutoChat] Skipping tick; plugin disabled or client not ready.");
                 elapsed = 0;
                 return;
             }
@@ -120,6 +134,7 @@ public sealed class Plugin : IDalamudPlugin
             if (elapsed + 1e-6 >= Config.IntervalSeconds) // numeric safety
             {
                 elapsed = 0;
+                PluginLog.LogDebug("[AutoChat] Interval reached; attempting to send message.");
                 TrySend();
             }
         }
@@ -136,17 +151,37 @@ public sealed class Plugin : IDalamudPlugin
 
         try
         {
-            var msg = (Config.Message ?? string.Empty).Trim();
-            if (string.IsNullOrEmpty(msg)) return;
+            var msg = Config.Message;
+            if (string.IsNullOrWhiteSpace(msg))
+            {
+                PluginLog.LogDebug("[AutoChat] Aborting send; message is empty or whitespace.");
+                return;
+            }
+
+            msg = Configuration.NormalizeMessage(msg);
+            if (msg.Length == 0)
+            {
+                PluginLog.LogDebug("[AutoChat] Aborting send; normalized message length is zero.");
+                return;
+            }
+
+            if (!string.Equals(Config.Message, msg, StringComparison.Ordinal))
+            {
+                Config.Message = msg;
+                Config.Save();
+                PluginLog.LogDebug("[AutoChat] Normalized message persisted to configuration.");
+            }
 
             var prefix = GetChannelPrefix(Config.Channel);
             if (string.IsNullOrEmpty(prefix))
             {
+                PluginLog.LogDebug("[AutoChat] Sending message via ChatGui.Print.");
                 ChatGui.Print(msg);
                 return;
             }
 
             var toSend = $"{prefix} {msg}";
+            PluginLog.LogDebug($"[AutoChat] Dispatching command: {toSend}");
             CommandManager.ProcessCommand(toSend);
         }
         catch (Exception ex)
@@ -221,6 +256,12 @@ public sealed class Plugin : IDalamudPlugin
         hasFailed = true;
         isOperational = false;
 
+        var failureMessage = $"[AutoChat] Critical failure encountered: {reason}.";
+        if (ex != null)
+            PluginLog.LogError(ex, failureMessage);
+        else
+            PluginLog.LogError(failureMessage);
+
         CleanupHooks();
         DisposeWindow();
 
@@ -233,6 +274,7 @@ public sealed class Plugin : IDalamudPlugin
             try
             {
                 Config.Save();
+                PluginLog.LogDebug("[AutoChat] Configuration disabled due to failure.");
             }
             catch
             {
@@ -242,11 +284,10 @@ public sealed class Plugin : IDalamudPlugin
 
         var message = $"[AutoChat] Automatic chat disabled due to {reason}.";
         if (ex != null)
-        {
             message += $" Error: {ex.Message}";
-        }
 
         ChatGui?.PrintError(message);
+        PluginLog.LogError(message);
     }
 
     private void CleanupHooks()
@@ -255,30 +296,35 @@ public sealed class Plugin : IDalamudPlugin
         {
             Framework.Update -= OnFrameworkUpdate;
             frameworkHooked = false;
+            PluginLog.LogDebug("[AutoChat] Unhooked framework updates.");
         }
 
         if (commandRegistered)
         {
             CommandManager.RemoveHandler(Command);
             commandRegistered = false;
+            PluginLog.LogDebug("[AutoChat] Command handler removed.");
         }
 
         if (drawHooked)
         {
             PluginInterface.UiBuilder.Draw -= DrawUI;
             drawHooked = false;
+            PluginLog.LogDebug("[AutoChat] Draw handler removed.");
         }
 
         if (openConfigUiHooked && openConfigHandler != null)
         {
             PluginInterface.UiBuilder.OpenConfigUi -= openConfigHandler;
             openConfigUiHooked = false;
+            PluginLog.LogDebug("[AutoChat] OpenConfigUi handler removed.");
         }
 
         if (openMainUiHooked && openConfigHandler != null)
         {
             PluginInterface.UiBuilder.OpenMainUi -= openConfigHandler;
             openMainUiHooked = false;
+            PluginLog.LogDebug("[AutoChat] OpenMainUi handler removed.");
         }
     }
 
@@ -288,6 +334,7 @@ public sealed class Plugin : IDalamudPlugin
         window?.Dispose();
         windowSystem = null;
         window = null;
+        PluginLog.LogDebug("[AutoChat] UI disposed.");
     }
 }
 

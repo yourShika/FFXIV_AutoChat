@@ -1,5 +1,6 @@
 ﻿using System;
 using Dalamud.Interface.Windowing;
+using Dalamud.Logging;
 using ImGuiNET;
 
 namespace AutoChat.Ui;
@@ -26,13 +27,17 @@ public sealed class AutoChatWindow : Window, IDisposable
 
         var cfg = plugin.Config;
         if (cfg.Sanitize())
+        {
+            PluginLog.LogDebug("[AutoChat] Configuration sanitized via window draw; persisting changes.");
             cfg.Save();
+        }
 
         bool enabled = cfg.Enabled;
         if (ImGui.Checkbox("Enable (Start/Stop)", ref enabled))
         {
             cfg.Enabled = enabled;
             cfg.Save();
+            PluginLog.LogInformation($"[AutoChat] Plugin {(enabled ? "enabled" : "disabled")} from configuration window.");
         }
 
         ImGui.Separator();
@@ -40,11 +45,26 @@ public sealed class AutoChatWindow : Window, IDisposable
         //Message
         var msg = cfg.Message ?? string.Empty;
         ImGui.Text("Message to Send");
-        ImGui.InputTextMultiline("##msg", ref msg, 2048, new System.Numerics.Vector2(-1, 80));
-        if (msg != cfg.Message)
+        if (ImGui.InputTextMultiline("##msg", ref msg, 2048, new System.Numerics.Vector2(-1, 80)))
         {
-            cfg.Message = msg;
-            cfg.Save();
+            var normalized = Configuration.NormalizeMessage(msg);
+            if (!string.Equals(normalized, cfg.Message, StringComparison.Ordinal))
+            {
+                cfg.Message = normalized;
+                cfg.Save();
+                PluginLog.LogDebug("[AutoChat] Configuration message updated via window.");
+            }
+
+            if (!string.Equals(normalized, msg, StringComparison.Ordinal))
+                msg = normalized;
+        }
+
+        var currentLength = (cfg.Message ?? string.Empty).Length;
+        ImGui.TextDisabled($"{currentLength}/{Configuration.MaxMessageLength} characters (max)");
+        if (currentLength >= Configuration.MaxMessageLength)
+        {
+            ImGui.SameLine();
+            ImGui.TextColored(new System.Numerics.Vector4(1f, 0.6f, 0f, 1f), "Limit reached");
         }
 
         //Interval
@@ -54,6 +74,7 @@ public sealed class AutoChatWindow : Window, IDisposable
         {
             cfg.IntervalSeconds = Math.Clamp(interval, 5, 3600);
             cfg.Save();
+            PluginLog.LogDebug($"[AutoChat] Interval updated to {cfg.IntervalSeconds}s via window.");
         }
 
         //Channel
@@ -67,6 +88,7 @@ public sealed class AutoChatWindow : Window, IDisposable
                 {
                     cfg.Channel = c;
                     cfg.Save();
+                    PluginLog.LogDebug($"[AutoChat] Channel changed to {cfg.Channel} via window.");
                 }
                 if (sel) ImGui.SetItemDefaultFocus();
             }
@@ -78,6 +100,7 @@ public sealed class AutoChatWindow : Window, IDisposable
         // End of Window
         if (ImGui.Button("Send now"))
         {
+            PluginLog.LogDebug("[AutoChat] Manual send triggered via configuration window.");
             plugin.TrySend();
         }
 
@@ -86,6 +109,7 @@ public sealed class AutoChatWindow : Window, IDisposable
         {
             cfg.Enabled = !cfg.Enabled;
             cfg.Save();
+            PluginLog.LogInformation($"[AutoChat] Plugin {(cfg.Enabled ? "enabled" : "disabled")} via quick toggle button.");
         }
 
         ImGui.Spacing();
