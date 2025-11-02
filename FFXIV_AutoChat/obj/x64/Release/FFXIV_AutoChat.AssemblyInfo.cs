@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FFXIV_AutoChat")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0.0+853eb1afa3cb7151f20e3a4d27deb52438979492")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0.0+542fe99bc7e2bc6eff95b2d2aa6b9502b3ec9ca6")]
 [assembly: System.Reflection.AssemblyProductAttribute("FFXIV_AutoChat")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FFXIV_AutoChat")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
