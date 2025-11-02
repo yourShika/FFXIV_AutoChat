@@ -1,9 +1,9 @@
-﻿using Dalamud.IoC;
+﻿using System;
+using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
-using ImGuiNET;
 
 namespace AutoChat;
 
@@ -16,21 +16,16 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] public static ICommandManager CommandManager { get; private set; } = null!;
     [PluginService] public static IFramework Framework { get; private set; } = null!;
     [PluginService] public static IClientState ClientState { get; private set; } = null!;
-    [PluginService] public static ITextureProvider TextureProvider { get; private set; } = null!;
-
-    [PluginService] public static ICondition Condition { get; private set; } = null!;
-
-
     private const string Command = "/autochat";
 
     public Configuration Config { get; private set; }
 
     private double elapsed;
 
-    private WindowSystem windowSystem;
-    private Ui.AutoChatWindow window;
+    private readonly WindowSystem windowSystem;
+    private readonly Ui.AutoChatWindow window;
 
-    private Action openConfigHandler;
+    private readonly Action openConfigHandler;
 
     public Plugin(IDalamudPluginInterface PluginInterface)
     {
@@ -38,15 +33,17 @@ public sealed class Plugin : IDalamudPlugin
 
         Config = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Config.Initialize(PluginInterface);
+        if (Config.Sanitize())
+            Config.Save();
 
         window = new Ui.AutoChatWindow(this);
         windowSystem = new WindowSystem("AutoChat");
         windowSystem.AddWindow(window);
 
         PluginInterface.UiBuilder.Draw += DrawUI;
-
-        openConfigHandler = () => window.IsOpen = true;
-        PluginInterface.UiBuilder.OpenConfigUi -= () => window.IsOpen = true;
+        openConfigHandler = OpenConfigWindow;
+        PluginInterface.UiBuilder.OpenConfigUi += openConfigHandler;
+        PluginInterface.UiBuilder.OpenMainUi += openConfigHandler;
 
         CommandManager.AddHandler(Command, new CommandInfo(OnCommand)
         {
@@ -58,7 +55,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnCommand(string command, string args)
     {
-        window.IsOpen = true;
+        OpenConfigWindow();
     }
 
     private double tickAccum;
@@ -67,14 +64,19 @@ public sealed class Plugin : IDalamudPlugin
     private void OnFrameworkUpdate(IFramework framework)
     {
         tickAccum += framework.UpdateDelta.TotalSeconds;
-        if (tickAccum < TickStep) return;
+        if (tickAccum < TickStep)
+            return;
+
+        var step = tickAccum;
         tickAccum = 0;
 
-        if (!Config.Enabled) return;
-        if (Config.IntervalSeconds < 1) return;
-        if (!ClientState.IsLoggedIn) return;
+        if (!Config.Enabled || Config.IntervalSeconds < 1 || !ClientState.IsLoggedIn)
+        {
+            elapsed = 0;
+            return;
+        }
 
-        elapsed += TickStep;
+        elapsed += step;
         if (elapsed + 1e-6 >= Config.IntervalSeconds) // numeric safety
         {
             elapsed = 0;
@@ -88,7 +90,13 @@ public sealed class Plugin : IDalamudPlugin
         if (string.IsNullOrEmpty(msg)) return;
 
         var prefix = GetChannelPrefix(Config.Channel);
-        var toSend = string.IsNullOrEmpty(prefix) ? msg : $"{prefix} {msg}";
+        if (string.IsNullOrEmpty(prefix))
+        {
+            ChatGui.Print(msg);
+            return;
+        }
+
+        var toSend = $"{prefix} {msg}";
         CommandManager.ProcessCommand(toSend);
     }
 
@@ -125,10 +133,8 @@ public sealed class Plugin : IDalamudPlugin
         Framework.Update -= OnFrameworkUpdate;
         CommandManager.RemoveHandler(Command);
         PluginInterface.UiBuilder.Draw -= DrawUI;
-
-        // FIX: korrekt abmelden
-        if (openConfigHandler != null)
-            PluginInterface.UiBuilder.OpenConfigUi -= openConfigHandler;
+        PluginInterface.UiBuilder.OpenConfigUi -= openConfigHandler;
+        PluginInterface.UiBuilder.OpenMainUi -= openConfigHandler;
 
         windowSystem.RemoveAllWindows();
         window?.Dispose();
@@ -137,6 +143,11 @@ public sealed class Plugin : IDalamudPlugin
     private void DrawUI()
     {
         windowSystem.Draw();
+    }
+
+    private void OpenConfigWindow()
+    {
+        window.IsOpen = true;
     }
 }
 

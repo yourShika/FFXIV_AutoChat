@@ -25,6 +25,8 @@ public sealed class AutoChatWindow : Window, IDisposable
         if (!IsOpen) return;
 
         var cfg = plugin.Config;
+        if (cfg.Sanitize())
+            cfg.Save();
 
         bool enabled = cfg.Enabled;
         if (ImGui.Checkbox("Enable (Start/Stop)", ref enabled))
